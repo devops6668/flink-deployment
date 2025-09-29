@@ -2,7 +2,7 @@ apiVersion: flink.apache.org/v1beta1
 kind: FlinkDeployment
 metadata:
   name: basic-example-1
-  namespace: flink
+  # remove namespace here if you set it via Kustomize or in the Argo CD Application
 spec:
   image: flink:1.20
   flinkVersion: v1_20
@@ -13,40 +13,40 @@ spec:
     resource:
       memory: "2048m"
       cpu: 1
-  podTemplate:
-    spec:
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 9999
-        runAsGroup: 9999
-        fsGroup: 9999
-        seccompProfile:
-          type: RuntimeDefault
-      containers:
-        - name: flink-main-container
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop: ["ALL"]
+    podTemplate:
+      spec:
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 9999
+          runAsGroup: 9999
+          fsGroup: 9999
+          seccompProfile:
+            type: RuntimeDefault
+        containers:
+          - name: flink-main-container
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop: ["ALL"]
   taskManager:
     resource:
       memory: "2048m"
       cpu: 1
-  podTemplate:
-    spec:
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 9999
-        runAsGroup: 9999
-        fsGroup: 9999
-        seccompProfile:
-          type: RuntimeDefault
-      containers:
-        - name: flink-main-container
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop: ["ALL"]
+    podTemplate:
+      spec:
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 9999
+          runAsGroup: 9999
+          fsGroup: 9999
+          seccompProfile:
+            type: RuntimeDefault
+        containers:
+          - name: flink-main-container
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop: ["ALL"]
   job:
     jarURI: local:///opt/flink/examples/streaming/StateMachineExample.jar
     parallelism: 2
