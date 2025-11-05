@@ -43,3 +43,22 @@ patchesJson6902:
       kind: FlinkDeployment
       name: session-cluster
     path: patch-envfrom.json
+
+
+patch-pvc-claim.json
+[
+  {
+    "op": "replace",
+    "path": "/spec/podTemplate/spec/volumes/0/persistentVolumeClaim/claimName",
+    "value": "dev-flink-data"
+  }
+]
+
+  - target:
+      group: flink.apache.org
+      version: v1beta1
+      kind: FlinkDeployment
+      name: session-cluster
+    path: patch-pvc-claim.json
+
+
