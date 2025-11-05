@@ -1,0 +1,115 @@
+apiVersion: flink.apache.org/v1beta1
+kind: FlinkDeployment
+metadata:
+  name: session-cluster
+  namespace: flink
+spec:
+  flinkConfiguration:
+    execution.checkpointing.interval: 10s
+    high-availability: kubernetes
+    high-availability.storageDir: file:///flink-data/ha
+    kubernetes.operator.savepoint.format.type: NATIVE
+    python.client.executable: /opt/venv/bin/python3
+    python.executable: /opt/venv/bin/python3
+    state.checkpoints.dir: file:///flink-data/flink-ckpt
+    state.savepoints.dir: file:///flink-data/flink-sp
+    taskmanager.numberOfTaskSlots: "2"
+  flinkVersion: v1_20
+  image: quay.io/colinchan2025/flink_base:0.1.0-dev-2
+  job:
+    args:
+    - -py
+    - /opt/flink/usrcode/app.py
+    - -pyexec
+    - /opt/venv/bin/python3
+    entryClass: org.apache.flink.client.python.PythonDriver
+    jarURI: local:///opt/flink/lib/flink-python-1.20.1.jar
+    parallelism: 2
+    state: running
+    upgradeMode: stateless
+  jobManager:
+    replicas: 1
+    resource:
+      cpu: 1
+      memory: 2048m
+  mode: native
+  podTemplate:
+    spec:
+      containers:
+      - env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: JAVA_TOOL_OPTIONS
+          value: -Djavax.net.ssl.trustStore=/etc/ssl/truststore/cacerts -Djavax.net.ssl.trustStorePassword=changeit
+        envFrom:
+        - configMapRef:
+            name: flink-env
+        - secretRef:
+            name: flink-secret
+        name: flink-main-container
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /flink-data
+          name: flink-volume
+        - mountPath: /ca
+          name: minio-ca
+        - mountPath: /etc/ssl/truststore
+          name: truststore-vol
+        - mountPath: /opt/bootstrap
+          name: bootstrap
+      initContainers:
+      - args:
+        - |
+          set -e
+          /opt/bootstrap/register-ca.sh
+        command:
+        - /bin/bash
+        - -lc
+        env:
+        - name: CA_FILE
+          value: /ca/minio-ca.crt
+        - name: TARGET_TRUSTSTORE
+          value: /truststore/cacerts
+        - name: STOREPASS
+          value: changeit
+        image: quay.io/colinchan2025/flink_base:0.1.0-dev-2
+        name: register-minio-ca
+        securityContext:
+          runAsUser: 0
+        volumeMounts:
+        - mountPath: /ca
+          name: minio-ca
+        - mountPath: /truststore
+          name: truststore-vol
+        - mountPath: /opt/bootstrap
+          name: bootstrap
+      securityContext:
+        fsGroup: 9999
+        runAsGroup: 9999
+        runAsUser: 9999
+      volumes:
+      - name: flink-volume
+        persistentVolumeClaim:
+          claimName: flink-data
+      - configMap:
+          name: cm-ca
+        name: minio-ca
+      - emptyDir: {}
+        name: truststore-vol
+      - configMap:
+          defaultMode: 493
+          name: flink-bootstrap
+        name: bootstrap
+  serviceAccount: flink
+  taskManager:
+    replicas: 2
+    resource:
+      cpu: 1
+      memory: 4096m
