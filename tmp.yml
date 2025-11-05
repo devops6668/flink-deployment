@@ -1,0 +1,45 @@
+
+
+patch-envfrom.json
+
+[
+  {
+    "op": "add",
+    "path": "/spec/podTemplate/spec/containers/0/envFrom",
+    "value": [
+      { "configMapRef": { "name": "flink-env" } },
+      { "secretRef": { "name": "flink-secret" } }
+    ]
+  }
+]
+
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namePrefix: dev-
+
+resources:
+  - ../../base
+
+patches:
+  - path: patch-job-and-jobmanager.yaml
+    target:
+      kind: FlinkDeployment
+      name: session-cluster
+#  - path: patch-envfrom.yaml
+#    target:
+#      kind: FlinkDeployment
+#      name: session-cluster
+  - path: patch-taskmanager.yaml
+    target:
+      kind: FlinkDeployment
+      name: session-cluster
+
+patchesJson6902:
+  - target:
+      group: flink.apache.org
+      version: v1beta1
+      kind: FlinkDeployment
+      name: session-cluster
+    path: patch-envfrom.json
