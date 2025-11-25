@@ -15,7 +15,7 @@ spec:
     state.savepoints.dir: file:///flink-data/flink-sp
     taskmanager.numberOfTaskSlots: "2"
   flinkVersion: v1_20
-  image: quay.io/colinchan2025/flink_base:0.1.0-dev-2
+  image: flink_base:0.1.0-dev-2
   job:
     args:
     - -py
