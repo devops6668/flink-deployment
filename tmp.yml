@@ -1,64 +1,11 @@
+xfs
+mkfs.xfs -f /dev/sdX
+mount -o noatime,nodiratime,inode64,logbufs=8,logbsize=256k /dev/sdX /var/lib/longhorn
 
 
-patch-envfrom.json
-
-[
-  {
-    "op": "add",
-    "path": "/spec/podTemplate/spec/containers/0/envFrom",
-    "value": [
-      { "configMapRef": { "name": "flink-env" } },
-      { "secretRef": { "name": "flink-secret" } }
-    ]
-  }
-]
+noatime,nodiratime to reduce metadata writes
+inode64 for large disks to allow allocation across full address space
+logbufs=8 and logbsize=256k can help metadata logging throughput
 
 
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-
-namePrefix: dev-
-
-resources:
-  - ../../base
-
-patches:
-  - path: patch-job-and-jobmanager.yaml
-    target:
-      kind: FlinkDeployment
-      name: session-cluster
-#  - path: patch-envfrom.yaml
-#    target:
-#      kind: FlinkDeployment
-#      name: session-cluster
-  - path: patch-taskmanager.yaml
-    target:
-      kind: FlinkDeployment
-      name: session-cluster
-
-patchesJson6902:
-  - target:
-      group: flink.apache.org
-      version: v1beta1
-      kind: FlinkDeployment
-      name: session-cluster
-    path: patch-envfrom.json
-
-
-patch-pvc-claim.json
-[
-  {
-    "op": "replace",
-    "path": "/spec/podTemplate/spec/volumes/0/persistentVolumeClaim/claimName",
-    "value": "dev-flink-data"
-  }
-]
-
-  - target:
-      group: flink.apache.org
-      version: v1beta1
-      kind: FlinkDeployment
-      name: session-cluster
-    path: patch-pvc-claim.json
-
-
+What inode64 does: On XFS, inode placement can be restricted to the lower 32‑bit address space (inode32), which was historically useful for certain legacy environments. With inode64, XFS can allocate inodes anywhere on the filesystem, improving performance and scalability on large volumes because metadata can be located near the data across the whole disk.
